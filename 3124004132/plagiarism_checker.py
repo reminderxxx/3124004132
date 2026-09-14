@@ -15,6 +15,11 @@ EQUIVALENT_EXPRESSIONS = {
     "周天": "星期日",
 }
 
+# 一元特征负责看“内容还剩多少”，二元、三元特征补充局部顺序。
+NGRAM_WEIGHTS = {1: 0.75, 2: 0.20, 3: 0.05}
+COVERAGE_WEIGHT = 0.80
+COSINE_WEIGHT = 0.20
+
 
 def normalize_text(text: str) -> str:
     """统一文本形式，并移除不参与查重的空白和标点。
@@ -113,9 +118,50 @@ def cosine_similarity(
     return min(1.0, max(0.0, similarity))
 
 
+def feature_overlap(
+    left_features: Mapping[str, Real], right_features: Mapping[str, Real]
+) -> float:
+    """计算重复特征数占较大特征集合的比例。"""
+
+    _validate_feature_vector(left_features, "左侧特征向量")
+    _validate_feature_vector(right_features, "右侧特征向量")
+
+    common_count = math.fsum(
+        min(float(value), float(right_features.get(feature, 0)))
+        for feature, value in left_features.items()
+    )
+    left_count = math.fsum(float(value) for value in left_features.values())
+    right_count = math.fsum(float(value) for value in right_features.values())
+    return common_count / max(left_count, right_count)
+
+
 def calculate_similarity(original: str, suspicious: str) -> float:
     """规范化两篇文本、提取特征并返回 0 到 1 之间的重复率。"""
 
-    original_features = extract_features(original)
-    suspicious_features = extract_features(suspicious)
-    return cosine_similarity(original_features, suspicious_features)
+    normalized_original = normalize_text(original)
+    normalized_suspicious = normalize_text(suspicious)
+    shortest_length = min(len(normalized_original), len(normalized_suspicious))
+    available_weights = {
+        size: weight
+        for size, weight in NGRAM_WEIGHTS.items()
+        if size <= shortest_length
+    }
+
+    original_features: Counter[str] = Counter()
+    suspicious_features: Counter[str] = Counter()
+    coverage_score = 0.0
+    total_weight = sum(available_weights.values())
+
+    for size, weight in available_weights.items():
+        original_part = extract_features(normalized_original, (size,))
+        suspicious_part = extract_features(normalized_suspicious, (size,))
+        original_features.update(original_part)
+        suspicious_features.update(suspicious_part)
+        coverage_score += weight * feature_overlap(original_part, suspicious_part)
+
+    coverage_score /= total_weight
+    distribution_score = cosine_similarity(original_features, suspicious_features)
+    similarity = (
+        COVERAGE_WEIGHT * coverage_score + COSINE_WEIGHT * distribution_score
+    )
+    return min(1.0, max(0.0, similarity))

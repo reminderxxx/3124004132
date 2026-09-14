@@ -9,6 +9,7 @@ from plagiarism_checker import (
     calculate_similarity,
     cosine_similarity,
     extract_features,
+    feature_overlap,
     normalize_text,
 )
 
@@ -178,6 +179,32 @@ class CosineSimilarityTests(unittest.TestCase):
             cosine_similarity({"a": 0}, {"a": 1})
 
 
+class FeatureOverlapTests(unittest.TestCase):
+    """测试重复特征覆盖比例。"""
+
+    def test_returns_one_for_identical_features(self) -> None:
+        self.assertEqual(feature_overlap({"a": 2, "b": 1}, {"a": 2, "b": 1}), 1.0)
+
+    def test_penalizes_added_features(self) -> None:
+        self.assertEqual(feature_overlap({"a": 1}, {"a": 1, "b": 1}), 0.5)
+
+    def test_penalizes_deleted_features(self) -> None:
+        self.assertEqual(feature_overlap({"a": 1, "b": 1}, {"a": 1}), 0.5)
+
+    def test_uses_the_smaller_repeated_count(self) -> None:
+        self.assertEqual(feature_overlap({"a": 3}, {"a": 2}), 2 / 3)
+
+    def test_is_symmetric(self) -> None:
+        left = {"a": 3, "b": 1}
+        right = {"a": 2, "c": 2}
+
+        self.assertEqual(feature_overlap(left, right), feature_overlap(right, left))
+
+    def test_reuses_vector_validation(self) -> None:
+        with self.assertRaises(ValueError):
+            feature_overlap({"a": -1}, {"a": 1})
+
+
 class CalculateSimilarityTests(unittest.TestCase):
     """测试完整的论文文本重复率计算。"""
 
@@ -220,6 +247,18 @@ class CalculateSimilarityTests(unittest.TestCase):
             calculate_similarity(left, right),
             calculate_similarity(right, left),
         )
+
+    def test_length_difference_lowers_the_score(self) -> None:
+        original = "今天天气晴适合散步"
+        longer = "今天天气晴适合散步我还准备去公园拍照"
+
+        self.assertLess(calculate_similarity(original, longer), 0.9)
+
+    def test_local_order_changes_lower_the_score(self) -> None:
+        original = "天地玄黄宇宙洪荒日月盈昃辰宿列张"
+        disordered = "地天黄玄宙宇荒洪月日昃盈宿辰张列"
+
+        self.assertLess(calculate_similarity(original, disordered), 0.9)
 
 
 if __name__ == "__main__":
