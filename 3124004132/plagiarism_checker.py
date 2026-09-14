@@ -8,7 +8,6 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from numbers import Real
 
-
 EQUIVALENT_EXPRESSIONS = {
     "星期天": "星期日",
     "周日": "星期日",

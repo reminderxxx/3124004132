@@ -24,10 +24,13 @@ python main.py [原文文件绝对路径] [抄袭版文件绝对路径] [答案�
 ```text
 3124004132/
 ├── .gitignore
+├── .coveragerc
 ├── main.py
 ├── plagiarism_checker.py
 ├── file_utils.py
 ├── requirements.txt
+├── requirements-dev.txt
+├── pyproject.toml
 ├── tests/
 │   ├── test_main.py
 │   ├── test_file_utils.py
@@ -35,7 +38,8 @@ python main.py [原文文件绝对路径] [抄袭版文件绝对路径] [答案�
 ├── README.md
 ├── PSP.md
 ├── DESIGN.md
-└── ALGORITHM_NOTES.md
+├── ALGORITHM_NOTES.md
+└── QUALITY_REPORT.md
 ```
 
 项目规模较小，暂时不设计需要保存状态的类，主要通过职责清晰的函数组织代码。

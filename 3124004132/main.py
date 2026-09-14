@@ -9,7 +9,6 @@ from typing import Iterable, Optional
 from file_utils import read_text, write_result
 from plagiarism_checker import calculate_similarity
 
-
 USAGE = "用法：python main.py [原文文件] [抄袭版论文文件] [答案文件]"
 
 
@@ -43,5 +42,5 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - 由子进程集成测试验证
     raise SystemExit(main())

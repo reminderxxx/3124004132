@@ -22,6 +22,16 @@ python main.py [原文文件绝对路径] [抄袭版文件绝对路径] [答案�
 python main.py /绝对路径/orig.txt /绝对路径/copy.txt /绝对路径/answer.txt
 ```
 
+开发阶段的覆盖率和代码质量工具可以安装到独立环境：
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/coverage run -m unittest discover -s tests
+.venv/bin/coverage report -m
+.venv/bin/ruff check .
+```
+
 ## 开发计划
 
 本项目计划按照以下阶段逐步完成：
@@ -37,6 +47,8 @@ python main.py /绝对路径/orig.txt /绝对路径/copy.txt /绝对路径/answe
 
 ## 当前进度
 
-已完成需求整理、开发前 PSP 预估、模块设计、文件读写、文本规范化、多粒度特征、组合重复率计算和命令行主程序。目前程序已经可以按照作业要求接收三个路径并输出两位小数结果。
+已完成需求整理、开发前 PSP 预估、模块设计、文件读写、文本规范化、多粒度特征、组合重复率计算、命令行主程序、分支覆盖率和代码质量检查。目前程序已经可以按照作业要求接收三个路径并输出两位小数结果。
 
 算法从单独使用余弦相似度调整为“特征覆盖率为主、余弦相似度为辅”的组合方式，改进过程记录在 [ALGORITHM_NOTES.md](./ALGORITHM_NOTES.md)。
+
+测试覆盖率和 Ruff 检查过程记录在 [QUALITY_REPORT.md](./QUALITY_REPORT.md)。
