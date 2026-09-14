@@ -58,14 +58,22 @@ def extract_features(
         raise ValueError("n-gram 长度必须大于 0")
 
     normalized = normalize_text(text)
+    features = _extract_normalized_features(normalized, sizes)
+    if not features:
+        raise ValueError("文本长度不足以生成指定的 n-gram 特征")
+    return features
+
+
+def _extract_normalized_features(
+    normalized: str, ngram_sizes: Iterable[int]
+) -> Counter[str]:
+    """从已经规范化的文本中提取特征，供内部计算复用。"""
+
     features: Counter[str] = Counter()
-    for size in sorted(set(sizes)):
+    for size in sorted(set(ngram_sizes)):
         for start in range(len(normalized) - size + 1):
             ngram = normalized[start : start + size]
             features[f"{size}:{ngram}"] += 1
-
-    if not features:
-        raise ValueError("文本长度不足以生成指定的 n-gram 特征")
     return features
 
 
@@ -102,6 +110,13 @@ def cosine_similarity(
 
     _validate_feature_vector(left_features, "左侧特征向量")
     _validate_feature_vector(right_features, "右侧特征向量")
+    return _cosine_from_valid_vectors(left_features, right_features)
+
+
+def _cosine_from_valid_vectors(
+    left_features: Mapping[str, Real], right_features: Mapping[str, Real]
+) -> float:
+    """计算已经过校验的两个特征向量的余弦相似度。"""
 
     dot_product = math.fsum(
         float(value) * float(right_features.get(feature, 0))
@@ -124,6 +139,13 @@ def feature_overlap(
 
     _validate_feature_vector(left_features, "左侧特征向量")
     _validate_feature_vector(right_features, "右侧特征向量")
+    return _overlap_from_valid_vectors(left_features, right_features)
+
+
+def _overlap_from_valid_vectors(
+    left_features: Mapping[str, Real], right_features: Mapping[str, Real]
+) -> float:
+    """计算已经过校验的两个特征向量的重复占比。"""
 
     common_count = math.fsum(
         min(float(value), float(right_features.get(feature, 0)))
@@ -152,14 +174,18 @@ def calculate_similarity(original: str, suspicious: str) -> float:
     total_weight = sum(available_weights.values())
 
     for size, weight in available_weights.items():
-        original_part = extract_features(normalized_original, (size,))
-        suspicious_part = extract_features(normalized_suspicious, (size,))
+        original_part = _extract_normalized_features(normalized_original, (size,))
+        suspicious_part = _extract_normalized_features(normalized_suspicious, (size,))
         original_features.update(original_part)
         suspicious_features.update(suspicious_part)
-        coverage_score += weight * feature_overlap(original_part, suspicious_part)
+        coverage_score += weight * _overlap_from_valid_vectors(
+            original_part, suspicious_part
+        )
 
     coverage_score /= total_weight
-    distribution_score = cosine_similarity(original_features, suspicious_features)
+    distribution_score = _cosine_from_valid_vectors(
+        original_features, suspicious_features
+    )
     similarity = (
         COVERAGE_WEIGHT * coverage_score + COSINE_WEIGHT * distribution_score
     )
