@@ -20,12 +20,9 @@ class NormalizeTextTests(unittest.TestCase):
     def test_keeps_chinese_content(self) -> None:
         self.assertEqual(normalize_text("今天天气晴"), "今天天气晴")
 
-    def test_normalizes_sunday_expressions(self) -> None:
-        expressions = ("星期日", "星期天", "周日", "周天")
-
-        for expression in expressions:
-            with self.subTest(expression=expression):
-                self.assertEqual(normalize_text(f"今天是{expression}"), "今天是星期日")
+    def test_keeps_original_chinese_words(self) -> None:
+        self.assertEqual(normalize_text("今天是星期天"), "今天是星期天")
+        self.assertEqual(normalize_text("今天是周天"), "今天是周天")
 
     def test_normalizes_full_width_letters_and_numbers(self) -> None:
         self.assertEqual(normalize_text("ＡＢＣ１２３"), "abc123")
@@ -101,10 +98,10 @@ class ExtractFeaturesTests(unittest.TestCase):
     def test_removes_duplicate_ngram_sizes(self) -> None:
         self.assertEqual(extract_features("天气", (1, 1)), {"1:天": 1, "1:气": 1})
 
-    def test_uses_normalized_equivalent_expressions(self) -> None:
+    def test_uses_general_normalization_before_extracting(self) -> None:
         self.assertEqual(
-            extract_features("今天是星期天"),
-            extract_features("今天是周天"),
+            extract_features("ＡＩ，模型"),
+            extract_features("ai模型"),
         )
 
     def test_rejects_empty_ngram_sizes(self) -> None:
@@ -211,11 +208,14 @@ class CalculateSimilarityTests(unittest.TestCase):
     def test_returns_one_for_identical_text(self) -> None:
         self.assertAlmostEqual(calculate_similarity("今天天气晴", "今天天气晴"), 1.0)
 
-    def test_recognizes_equivalent_sunday_expressions(self) -> None:
-        self.assertAlmostEqual(
-            calculate_similarity("今天是星期日", "今天是周天"),
-            1.0,
-        )
+    def test_treats_local_expression_change_as_partial_match(self) -> None:
+        original = "今天是星期日，天气晴，我晚上要去看电影。"
+        changed = "今天是周天，天气晴朗，我晚上要去看电影。"
+
+        similarity = calculate_similarity(original, changed)
+
+        self.assertGreater(similarity, 0.7)
+        self.assertLess(similarity, 1.0)
 
     def test_ignores_punctuation_and_letter_case(self) -> None:
         self.assertAlmostEqual(

@@ -8,12 +8,6 @@ from collections import Counter
 from collections.abc import Iterable, Mapping
 from numbers import Real
 
-EQUIVALENT_EXPRESSIONS = {
-    "星期天": "星期日",
-    "周日": "星期日",
-    "周天": "星期日",
-}
-
 # 一元特征负责看“内容还剩多少”，二元、三元特征补充局部顺序。
 NGRAM_WEIGHTS = {1: 0.75, 2: 0.20, 3: 0.05}
 COVERAGE_WEIGHT = 0.80
@@ -23,17 +17,13 @@ COSINE_WEIGHT = 0.20
 def normalize_text(text: str) -> str:
     """统一文本形式，并移除不参与查重的空白和标点。
 
-    只归一化含义明确的少量等价表达，避免使用范围过大的手工
-    同义词表改变原文含义。数学符号等非标点字符会被保留。
+    数学符号等非标点字符会被保留。
     """
 
     if not isinstance(text, str):
         raise TypeError("待规范化的内容必须是字符串")
 
     normalized = unicodedata.normalize("NFKC", text).lower()
-    for expression, canonical_expression in EQUIVALENT_EXPRESSIONS.items():
-        normalized = normalized.replace(expression, canonical_expression)
-
     normalized = "".join(
         character
         for character in normalized
